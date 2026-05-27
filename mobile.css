@@ -1,0 +1,143 @@
+/* ==========================================================================
+   ASTRO-KOSMO: DEKORATIVE & SEPARATE MOBILE OPTIMIERUNG
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  /* 1. Horizontalen Scrollbalken eliminieren */
+  html, body {
+    overflow-x: hidden;
+    position: relative;
+    width: 100%;
+  }
+
+  /* Orbit-Hintergrundkreise für kleine Screens drosseln, um Ausbrechen zu verhindern */
+  .orbit-left {
+    width: 280px;
+    height: 280px;
+    top: 50px;
+    left: -100px;
+  }
+  .orbit-right {
+    width: 360px;
+    height: 360px;
+    top: -50px;
+    right: -120px;
+  }
+
+  /* 2. Hero-Bereich & Einleitungstext herabskalieren */
+  .hero {
+    padding-top: 40px;
+  }
+  .hero h1 {
+    font-size: 46px;
+    margin-bottom: 16px;
+  }
+  .hero p {
+    font-size: 15px !important; /* Optimierte Größe für ältere Augen ohne Erdrückung */
+    line-height: 1.6;
+    max-width: 100%;
+    padding: 0 12px;
+  }
+
+  /* 3. Grid-Layout & Panel-Abstände stauchen */
+  .grid {
+    grid-template-columns: 1fr !important;
+    gap: 24px;
+    margin: 40px auto 60px;
+    padding: 0 16px;
+  }
+  .panel {
+    padding: 24px 20px;
+    border-radius: 24px;
+  }
+  .panel-title h3 {
+    font-size: 26px;
+  }
+
+  /* Formularfelder für Touch-Bedienung optimieren */
+  .input {
+    height: 56px;
+    border-radius: 14px;
+    font-size: 15px;
+  }
+  .row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  /* 4. Ansprache-Modus: Icons vergrößern & Kacheln ausrichten */
+  .toggle-group {
+    gap: 10px;
+  }
+  .toggle {
+    height: 86px;
+    border-radius: 16px;
+    gap: 4px;
+  }
+  .toggle .icon-font {
+    font-size: 32px !important; /* Symbole deutlich präsenter und greifbarer */
+  }
+  .toggle span {
+    font-size: 10px;
+    letter-spacing: 1px;
+  }
+
+  /* 5. Berechnungs-Button sauber und barrierefrei darstellen */
+  .btn {
+    height: 64px;
+    border-radius: 16px;
+    font-size: 16px;
+    letter-spacing: 1.5px;
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Dynamische Auswertungselemente für Mobile stabilisieren */
+  .synthesis {
+    min-height: auto !important;
+  }
+  .tab-menu {
+    gap: 12px;
+    font-size: 13px;
+    width: 100%;
+    justify-content: space-between;
+  }
+  .tab-content {
+    margin-top: 64px;
+  }
+  .center-ui {
+    margin: 40px auto 20px;
+  }
+  .center-ui h2 {
+    font-size: 32px;
+  }
+  .center-ui p {
+    font-size: 15px;
+  }
+  
+  /* Radix-Chart Box-Skalierung fixieren */
+  #canvasChartTarget {
+    margin: 20px auto 0;
+    max-width: 100% !important;
+  }
+  #canvasChartTarget svg {
+    width: 100% !important;
+    height: auto !important;
+  }
+  
+  /* Daten-Karten kompakt darstellen */
+  .astro-grid-box {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .analysis-card {
+    padding: 20px;
+    border-radius: 16px;
+  }
+  .analysis-card h4 {
+    font-size: 20px;
+  }
+}
