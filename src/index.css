@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background-color: #05070a;
+  background-image: 
+    radial-gradient(circle at 80% 20%, rgba(46, 26, 71, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 20% 80%, rgba(0, 242, 255, 0.03) 0%, transparent 40%);
+}
+
+/* Custom Scrollbar für die Textbox im Premium-Look */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0b0e14;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #d4af37;
+}
