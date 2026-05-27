@@ -140,4 +140,54 @@
   .analysis-card h4 {
     font-size: 20px;
   }
+
+  /* ==========================================================================
+     ✦ ERGÄNZUNGEN: TITEL-FIXES, BUTTON-WRAPPING & DROPDOWN-USABILITY
+     ========================================================================== 
+  */
+
+  /* Fluide Titel-Skalierung gegen Abschneiden an den Rändern */
+  .panel-title h3 {
+    font-size: 20px !important;
+    letter-spacing: 0.5px !important;
+    white-space: nowrap !important;
+  }
+  .center-ui h2 {
+    font-size: 28px !important;
+    letter-spacing: 0.5px !important;
+  }
+
+  /* Button-Fix gegen das Umbrechen des Vektor-Sterns */
+  .btn {
+    font-size: 13px !important;
+    letter-spacing: 1.5px !important;
+    padding: 0 16px !important;
+    gap: 8px !important;
+    white-space: nowrap !important; /* Hält Text und Stern in einer festen Zeile */
+  }
+
+  /* Styling der nativen Browser-Picker (Kalender/Uhr) */
+  .input::-webkit-calendar-picker-indicator {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23f0d178'%3E%3Cpath d='M7 10h5v5H7z'/%3E%3Cpath d='M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z'/%3E%3C/svg%3E") !important;
+    cursor: pointer;
+    transform: scale(1.1);
+  }
+
+  /* Opakes, kontrastreiches GeoNames Orts-Dropdown mit Cyan-Fokuslinie */
+  #autocompleteDropdown {
+    background-color: #040b18 !important;
+    border: 1px solid rgba(0, 229, 255, 0.3) !important;
+    border-radius: 16px !important;
+    margin-top: 8px !important;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.95) !important;
+  }
+  .dropdown-item {
+    padding: 16px 20px !important; /* Optimierte Touch-Fläche für mobile Daumen */
+    font-size: 15px !important;
+    color: #e2e8f0 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+  }
+  .dropdown-item:hover {
+    background-color: rgba(0, 229, 255, 0.15) !important;
+  }
 }
