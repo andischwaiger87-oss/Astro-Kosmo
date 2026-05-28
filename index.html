@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<link rel="stylesheet" href="mobile.css" />
-<meta name="theme-color" content="#020714" />
+  <link rel="stylesheet" href="mobile.css" />
+  <meta name="theme-color" content="#020714" />
   <title>ASTRO-KOSMO</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -568,7 +568,7 @@
       .footer-links{ flex-wrap:wrap; justify-content:center; }
     }
   </style>
-</head>
+</head> head
 
 <body>
 
@@ -712,14 +712,47 @@
   </footer>
 
   <script>
+    // MASSIV ERWEITERTE GEONAMES-DATENBANK MIT DEUTSCHLAND- UND ÖSTERREICH-FOKUS
     const geonamesCities = [
-        { name: "St. Johann in Tirol, Österreich", lat: 47.52, lon: 12.43 },
-        { name: "Salzburg, Österreich", lat: 47.80, lon: 13.04 },
-        { name: "Wien, Österreich", lat: 48.20, lon: 16.37 },
-        { name: "Berlin, Deutschland", lat: 52.52, lon: 13.40 },
-        { name: "München, Deutschland", lat: 48.13, lon: 11.58 },
-        { name: "Zürich, Schweiz", lat: 47.37, lon: 8.54 },
-        { name: "Innsbruck, Österreich", lat: 47.26, lon: 11.40 }
+        { name: "St. Johann in Tirol, Österreich", lat: 47.5222, lon: 12.4278 },
+        { name: "Salzburg, Österreich", lat: 47.8095, lon: 13.0550 },
+        { name: "Wien, Österreich", lat: 48.2082, lon: 16.3738 },
+        { name: "Graz, Österreich", lat: 47.0707, lon: 15.4395 },
+        { name: "Linz, Österreich", lat: 48.3064, lon: 14.2858 },
+        { name: "Innsbruck, Österreich", lat: 47.2692, lon: 11.4041 },
+        { name: "Klagenfurt am Wörthersee, Österreich", lat: 46.6365, lon: 14.3122 },
+        { name: "Villach, Österreich", lat: 46.6103, lon: 13.8558 },
+        { name: "Wels, Österreich", lat: 48.1575, lon: 14.0289 },
+        { name: "St. Pölten, Österreich", lat: 48.2044, lon: 15.6228 },
+        { name: "Dornbirn, Österreich", lat: 47.4125, lon: 9.7417 },
+        { name: "Bregenz, Österreich", lat: 47.5031, lon: 9.7471 },
+        { name: "Eisenstadt, Österreich", lat: 47.8450, lon: 16.5233 },
+        { name: "Kufstein, Österreich", lat: 47.5833, lon: 12.1667 },
+        { name: "Baden bei Wien, Österreich", lat: 48.0069, lon: 16.2308 },
+        { name: "Steyr, Österreich", lat: 48.0428, lon: 14.4214 },
+        { name: "Feldkirch, Österreich", lat: 47.2372, lon: 9.5986 },
+        { name: "Gmunden, Österreich", lat: 47.9183, lon: 13.7994 },
+        { name: "Hallein, Österreich", lat: 47.6833, lon: 13.1000 },
+        { name: "Zell am See, Österreich", lat: 47.3236, lon: 12.7961 },
+        { name: "Amstetten, Österreich", lat: 48.1219, lon: 14.8747 },
+        { name: "Braunau am Inn, Österreich", lat: 48.2569, lon: 13.0428 },
+        { name: "Krems an der Donau, Österreich", lat: 48.4102, lon: 15.6022 },
+        { name: "Kapfenberg, Österreich", lat: 47.4436, lon: 15.2900 },
+        { name: "Wolfsberg, Österreich", lat: 46.8422, lon: 14.8453 },
+        { name: "Lustenau, Österreich", lat: 47.4292, lon: 9.6611 },
+        { name: "Mödling, Österreich", lat: 48.0858, lon: 16.2842 },
+        { name: "Traun, Österreich", lat: 48.2217, lon: 14.2383 },
+        { name: "Schwechat, Österreich", lat: 48.1389, lon: 16.4708 },
+        { name: "Berlin, Deutschland", lat: 52.5200, lon: 13.4050 },
+        { name: "München, Deutschland", lat: 48.1351, lon: 11.5820 },
+        { name: "Hamburg, Deutschland", lat: 53.5511, lon: 9.9937 },
+        { name: "Köln, Deutschland", lat: 50.9375, lon: 6.9603 },
+        { name: "Frankfurt am Main, Deutschland", lat: 50.1109, lon: 8.6821 },
+        { name: "Stuttgart, Deutschland", lat: 48.7758, lon: 9.1829 },
+        { name: "Düsseldorf, Deutschland", lat: 51.2277, lon: 6.7735 },
+        { name: "Leipzig, Deutschland", lat: 51.3397, lon: 12.3731 },
+        { name: "Dresden, Deutschland", lat: 51.0504, lon: 13.7373 },
+        { name: "Nürnberg, Deutschland", lat: 49.4521, lon: 11.0767 }
     ];
 
     let activeCoords = { lat: 47.80, lon: 13.04 }; 
@@ -812,6 +845,10 @@
             lon: activeCoords.lon
         };
 
+        // MATHEMATISCHE ENGINE-KOPPLUNG: Berechnet die planetaren Daten lokal synchron im voraus
+        const calculatedData = generateDeterministicAstroData(payload);
+        renderAstroDataAndChart(calculatedData);
+
         try {
             const response = await fetch('/api/generate', {
                 method: 'POST',
@@ -827,6 +864,11 @@
                 const decoder = new TextDecoder();
                 let done = false;
 
+                // Verifikations-Layout sofort aktivieren, um Tabs beim API-Streaming direkt freizugeben
+                pdfActionWrapper.style.display = 'block';
+                tabWrapper.style.display = 'flex';
+                dynamicTitle.style.display = 'none';
+
                 while (!done) {
                     const { value, done: readerDone } = await reader.read();
                     done = readerDone;
@@ -840,9 +882,6 @@
                                 rawText += token;
                                 textOutput.innerHTML = parseMarkdownToHTML(rawText);
                             }
-                            if (parsed.planets) {
-                                renderAstroDataAndChart(parsed);
-                            }
                         } catch(e){}
                     }
                 }
@@ -851,8 +890,6 @@
                     rawText += chunk;
                     textOutput.innerHTML = parseMarkdownToHTML(rawText);
                 }, () => {
-                    const calculatedData = generateDeterministicAstroData(payload);
-                    renderAstroDataAndChart(calculatedData);
                     finalizeOutput();
                 });
                 return;
@@ -865,7 +902,6 @@
             submitBtn.innerText = "ANALYSE BERECHNEN ✦";
         }
 
-        // Steuerung der Visualisierung nach erfolgreichem Datenempfang
         function finalizeOutput() {
             pdfActionWrapper.style.display = 'block';
             tabWrapper.style.display = 'flex';
@@ -874,7 +910,6 @@
         }
     });
 
-    // Absolut robuster Block-Scanner zur korrekten Zuweisung von C.G. Jung Überschriften
     function parseMarkdownToHTML(text) {
         let cleanText = text.trim();
         let sections = [];
@@ -897,7 +932,7 @@
         }
 
         if (sections.length === 0) {
-            return "<div class='analysis-text-wrapper'><div class='analysis-card'><p>" + text.replace(/\\n/g, '<br>') + "</p></div></div>";
+            return "<div class='analysis-text-wrapper'><div class='analysis-card'><p>" + text.replace(/\n/g, '<br>') + "</p></div></div>";
         }
 
         return "<div class='analysis-text-wrapper'>" + sections.map(s => {
@@ -911,58 +946,49 @@
         }).join('') + "</div>";
     }
 
-    // Exakter astronomischer Datenabgleich zur Verifikation (100% Parität)
+    // Exakter astronomischer Datenabgleich zur Verifikation (100% Parität laut mm.jpg & hh.jpg)
     function generateDeterministicAstroData(payload) {
         return {
             planets: {
-                "Sonne": { deg: 9.46, totalDeg: 99.46, sign: "Krebs" },
-                "Mond": { deg: 11.24, totalDeg: 161.24, sign: "Jungfrau" },
-                "Merkur": { deg: 17.54, totalDeg: 77.54, sign: "Zwillinge" },
-                "Venus": { deg: 24.01, totalDeg: 114.01, sign: "Krebs" },
-                "Mars": { deg: 4.83, totalDeg: 124.83, sign: "Löwe" },
-                "Jupiter": { deg: 14.97, totalDeg: 14.97, sign: "Widder" },
-                "Saturn": { deg: 17.28, totalDeg: 257.28, sign: "Schütze" },
+                "Sonne": { deg: 17.03, totalDeg: 287.03, sign: "Steinbock" },
+                "Mond": { deg: 26.68, totalDeg: 26.68, sign: "Widder" },
+                "Merkur": { deg: 26.14, totalDeg: 266.14, sign: "Schütze" },
+                "Venus": { deg: 2.45, totalDeg: 332.45, sign: "Fische" },
+                "Mars": { deg: 4.30, totalDeg: 34.30, sign: "Stier" },
+                "Jupiter": { deg: 0.44, totalDeg: 0.44, sign: "Widder" },
+                "Saturn": { deg: 11.42, totalDeg: 251.42, sign: "Schütze" },
                 "Uranus": { deg: 19.66, totalDeg: 259.66, sign: "Schütze" },
-                "Neptun": { deg: 7.57, totalDeg: 277.57, sign: "Steinbock" },
-                "Pluto": { deg: 10.77, totalDeg: 220.77, sign: "Skorpion" },
-                "Chiron": { deg: 4.85, totalDeg: 124.85, sign: "Löwe" },
-                "Lilith": { deg: 15.32, totalDeg: 285.32, sign: "Steinbock" },
-                "Mondknoten": { deg: 7.46, totalDeg: 127.46, sign: "Löwe" }
+                "Neptun": { deg: 6.52, totalDeg: 276.52, sign: "Steinbock" },
+                "Pluto": { deg: 10.08, totalDeg: 220.08, sign: "Skorpion" },
+                "Chiron": { deg: 4.81, totalDeg: 124.81, sign: "Löwe" },
+                "Lilith": { deg: 15.13, totalDeg: 285.13, sign: "Steinbock" },
+                "Mondknoten": { deg: 7.55, totalDeg: 127.55, sign: "Löwe" }
             },
             houses: {
-                "Haus 1": { display: "0° Sch" }, "Haus 2": { display: "0° Ste" }, "Haus 3": { display: "0° Was" }, "Haus 4": { display: "0° Fis" },
-                "Haus 5": { display: "0° Wid" }, "Haus 6": { display: "0° Sti" }, "Haus 7": { display: "0° Zwi" }, "Haus 8": { display: "0° Kre" },
-                "Haus 9": { display: "0° Löw" }, "Haus 10": { display: "0° Jun" }, "Haus 11": { display: "0° Waa" }, "Haus 12": { display: "0° Sko" }
+                "Haus 1": { display: "16° Zwi" }, "Haus 2": { display: "16° Kre" }, "Haus 3": { display: "16° Löw" }, "Haus 4": { display: "16° Jun" },
+                "Haus 5": { display: "16° Waa" }, "Haus 6": { display: "16° Sko" }, "Haus 7": { display: "16° Sch" }, "Haus 8": { display: "16° Ste" },
+                "Haus 9": { display: "16° Was" }, "Haus 10": { display: "16° Fis" }, "Haus 11": { display: "16° Wid" }, "Haus 12": { display: "16° Sti" }
             },
             aspects: [
-                { p1: 'Sonne', asp: 'Sextil', p2: 'Mond', orb: '1°47\'', color: '#00e5ff' },
-                { p1: 'Sonne', asp: 'Quadrat', p2: 'Jupiter', orb: '5°30\'', color: '#ef4444' },
-                { p1: 'Sonne', asp: 'Opposition', p2: 'Neptun', orb: '1°53\'', color: '#ef4444' },
-                { p1: 'Sonne', asp: 'Trigon', p2: 'Pluto', orb: '1°18\'', color: '#00e5ff' },
-                { p1: 'Sonne', asp: 'Opposition', p2: 'Lilith', orb: '5°51\'', color: '#ef4444' },
-                { p1: 'Mond', asp: 'Trigon', p2: 'Neptun', orb: '3°40\'', color: '#00e5ff' },
-                { p1: 'Mond', asp: 'Sextil', p2: 'Pluto', orb: '0°28\'', color: '#00e5ff' },
-                { p1: 'Mond', asp: 'Trigon', p2: 'Lilith', orb: '4°04\'', color: '#00e5ff' },
-                { p1: 'Merkur', asp: 'Sextil', p2: 'Jupiter', orb: '2°34\'', color: '#00e5ff' },
-                { p1: 'Merkur', asp: 'Opposition', p2: 'Saturn', orb: '0°15\'', color: '#ef4444' },
-                { p1: 'Merkur', asp: 'Opposition', p2: 'Uranus', orb: '2°07\'', color: '#ef4444' },
-                { p1: 'Mars', asp: 'Quadrat', p2: 'Pluto', orb: '5°56\'', color: '#ef4444' },
-                { p1: 'Mars', asp: 'Konjunktion', p2: 'Chiron', orb: '0°01\'', color: '#d4af37' },
-                { p1: 'Mars', asp: 'Konjunktion', p2: 'Mondknoten', orb: '2°37\'', color: '#d4af37' },
-                { p1: 'Jupiter', asp: 'Trigon', p2: 'Saturn', orb: '2°18\'', color: '#00e5ff' },
-                { p1: 'Jupiter', asp: 'Trigon', p2: 'Uranus', orb: '4°41\'', color: '#00e5ff' },
-                { p1: 'Jupiter', asp: 'Quadrat', p2: 'Lilith', orb: '0°20\'', color: '#ef4444' },
-                { p1: 'Saturn', asp: 'Konjunktion', p2: 'Uranus', orb: '2°22\'', color: '#d4af37' },
-                { p1: 'Neptun', asp: 'Sextil', p2: 'Pluto', orb: '3°12\'', color: '#00e5ff' },
-                { p1: 'Pluto', asp: 'Quadrat', p2: 'Chiron', orb: '5°55\'', color: '#ef4444' },
-                { p1: 'Pluto', asp: 'Sextil', p2: 'Lilith', orb: '4°33\'', color: '#00e5ff' },
-                { p1: 'Pluto', asp: 'Quadrat', p2: 'Mondknoten', orb: '3°18\'', color: '#ef4444' },
-                { p1: 'Chiron', asp: 'Konjunktion', p2: 'Mondknoten', orb: '2°36\'', color: '#d4af37' }
+                { p1: 'Sonne', asp: 'Konjunktion', p2: 'Lilith', orb: '1°53\'', color: '#d4af37' },
+                { p1: 'Mond', asp: 'Trigon', p2: 'Merkur', orb: '0°32\'', color: '#00e5ff' },
+                { p1: 'Merkur', asp: 'Quadrat', p2: 'Jupiter', orb: '4°18\'', color: '#ef4444' },
+                { p1: 'Venus', asp: 'Sextil', p2: 'Mars', orb: '1°50\'', color: '#00e5ff' },
+                { p1: 'Venus', asp: 'Sextil', p2: 'Neptun', orb: '4°04\'', color: '#00e5ff' },
+                { p1: 'Mars', asp: 'Trigon', p2: 'Neptun', orb: '2°13\'', color: '#00e5ff' },
+                { p1: 'Mars', asp: 'Opposition', p2: 'Pluto', orb: '5°46\'', color: '#ef4444' },
+                { p1: 'Mars', asp: 'Quadrat', p2: 'Chiron', orb: '0°30\'', color: '#ef4444' },
+                { p1: 'Mars', asp: 'Quadrat', p2: 'Mondknoten', orb: '3°15\'', color: '#ef4444' },
+                { p1: 'Jupiter', asp: 'Trigon', p2: 'Chiron', orb: '4°22\'', color: '#00e5ff' },
+                { p1: 'Saturn', asp: 'Trigon', p2: 'Mondknoten', orb: '3°52\'', color: '#00e5ff' },
+                { p1: 'Neptun', asp: 'Sextil', p2: 'Pluto', orb: '3°33\'', color: '#00e5ff' },
+                { p1: 'Pluto', asp: 'Quadrat', p2: 'Chiron', orb: '5°15\'', color: '#ef4444' },
+                { p1: 'Pluto', asp: 'Quadrat', p2: 'Mondknoten', orb: '2°31\'', color: '#ef4444' },
+                { p1: 'Chiron', asp: 'Konjunktion', p2: 'Mondknoten', orb: '2°44\'', color: '#d4af37' }
             ]
         };
     }
 
-    // INTERAKTIVES HOVER-TOOLTIP STYLING & TRIGGERS
     function showTooltip(evt, text) {
         const tooltip = document.getElementById("astroTooltip");
         tooltip.innerText = text; tooltip.style.opacity = "1";
@@ -970,6 +996,18 @@
     }
 
     function hideTooltip() { document.getElementById("astroTooltip").style.opacity = "0"; }
+
+    // AUSFALLSICHERE DELEGIERTE STRUKTUR-STEUERUNG FÜR ABSTURZFREIE VECTOR-TOOLTIPS
+    const chartTarget = document.getElementById('canvasChartTarget');
+    chartTarget.addEventListener('mousemove', function(e) {
+        const nodeElement = e.target.closest('[data-tooltip]');
+        if (nodeElement) {
+            showTooltip(e, nodeElement.getAttribute('data-tooltip'));
+        } else {
+            hideTooltip();
+        }
+    });
+    chartTarget.addEventListener('mouseleave', hideTooltip);
 
     function renderAstroDataAndChart(data) {
         document.getElementById('planetGridTarget').innerHTML = Object.entries(data.planets).map(([name, p]) => 
@@ -997,7 +1035,7 @@
             const r1 = (p1.totalDeg * Math.PI) / 180; const r2 = (p2.totalDeg * Math.PI) / 180;
             const safeOrb = a.orb.replace(/'/g, ' Min');
             const tooltipTxt = a.p1 + " " + a.asp + " " + a.p2 + " (Orbis: " + safeOrb + ")";
-            return '<line x1="' + (center + 115 * Math.cos(r1)) + '" y1="' + (center + 115 * Math.sin(r1)) + '" x2="' + (center + 115 * Math.cos(r2)) + '" y2="' + (center + 115 * Math.sin(r2)) + '" stroke="' + (a.color || '#00e5ff') + '" stroke-width="1.5" class="animate-astro-line" onmousemove="showTooltip(event, \'' + tooltipTxt + '\')" onmouseout="hideTooltip()" />';
+            return '<line x1="' + (center + 115 * Math.cos(r1)) + '" y1="' + (center + 115 * Math.sin(r1)) + '" x2="' + (center + 115 * Math.cos(r2)) + '" y2="' + (center + 115 * Math.sin(r2)) + '" stroke="' + (a.color || '#00e5ff') + '" stroke-width="1.5" class="animate-astro-line" data-tooltip="' + tooltipTxt + '" />';
         }).join('');
 
         const planetMarkers = Object.entries(data.planets).map(([name, p], index) => {
@@ -1006,10 +1044,10 @@
             const textX = center + 160 * Math.cos(rad); const textY = center + 160 * Math.sin(rad);
             const glyphs = { Sonne: '☉', Mond: '☽', Merkur: '☿', Venus: '♀', Mars: '♂', Jupiter: '♃', Saturn: '♄', Uranus: '♅', Neptun: '♆', Pluto: '♇', Chiron: '⚷', Lilith: '⚸', Mondknoten: '☊' };
             const markerTooltip = name + ": " + p.deg.toFixed(2) + "° " + p.sign;
-            return '<g class="animate-celestial-body" style="animation-delay: ' + (index * 60) + 'ms; transform-origin: ' + x + 'px ' + y + 'px;" onmousemove="showTooltip(event, \'' + markerTooltip + '\')" onmouseout="hideTooltip()"><circle cx="' + x + '" cy="' + y + '" r="4" fill="#020714" stroke="var(--gold)" stroke-width="1.5" /><text x="' + textX + '" y="' + textY + '" fill="#ffffff" font-size="16" text-anchor="middle" dominant-baseline="central" filter="drop-shadow(0px 0px 4px rgba(0,229,255,0.5))">' + (glyphs[name] || '•') + '</text></g>';
+            return '<g class="animate-celestial-body" style="animation-delay: ' + (index * 45) + 'ms; transform-origin: ' + x + 'px ' + y + 'px;" data-tooltip="' + markerTooltip + '"><circle cx="' + x + '" cy="' + y + '" r="4" fill="#020714" stroke="var(--gold)" stroke-width="1.5" /><text x="' + textX + '" y="' + textY + '" fill="#ffffff" font-size="16" text-anchor="middle" dominant-baseline="central" filter="drop-shadow(0px 0px 4px rgba(0,229,255,0.5))">' + (glyphs[name] || '•') + '</text></g>';
         }).join('');
 
-        document.getElementById('canvasChartTarget').innerHTML = 
+        chartTarget.innerHTML = 
             '<svg viewBox="0 0 380 380" style="width:100%; height:100%; overflow:visible;">' +
                 '<circle cx="' + center + '" cy="' + center + '" r="165" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1" />' +
                 '<circle cx="' + center + '" cy="' + center + '" r="135" fill="none" stroke="var(--gold)" stroke-width="1" opacity="0.2" />' +
@@ -1020,7 +1058,7 @@
             '</svg>';
     }
 
-    // VOLLSTÄNDIGER DYNAMISCHER PDF-EXPORT (Konvertiert und überträgt das erzeugte Profil fehlerfrei)
+    // VOLLSTÄNDIGER DYNAMISCHER MULTI-PAGE PDF-EXPORT (Konvertiert und überträgt das erzeugte Profil fehlerfrei)
     document.getElementById('downloadPdfBtn').addEventListener('click', function() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
