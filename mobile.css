@@ -191,3 +191,51 @@
     background-color: rgba(0, 229, 255, 0.15) !important;
   }
 }
+
+/* ==========================================================================
+   ZUSÄTZLICHE MOBILE TEXT-MAXIMIERUNG & UI-RESETS
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  /* Maximalen Platz für Text-Inhalte freigeben */
+  .grid {
+    padding: 0 8px !important; /* Seitliche Haupt-Marge minimieren */
+    gap: 16px !important;
+  }
+  
+  .panel {
+    padding: 20px 12px !important; /* Inneren Panel-Einzug stauchen */
+    border-radius: 20px !important;
+  }
+
+  .analysis-card {
+    padding: 16px 12px !important; /* Text nähert sich harmonisch dem Rand */
+    margin-bottom: 12px !important;
+  }
+
+  .analysis-card p {
+    font-size: 15px !important;
+    line-height: 1.7 !important;
+    letter-spacing: 0.2px !important;
+  }
+
+  /* Browser-Reset für die Tab-Buttons gegen ungewollte Hintergrund-Überlagerungen */
+  .tab-menu {
+    gap: 8px !important;
+  }
+  
+  .tab-btn {
+    background: transparent !important;
+    background-color: transparent !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    border-radius: 0 !important;
+    padding: 6px 2px !important;
+    box-shadow: none !important;
+  }
+  
+  .tab-btn.active {
+    color: var(--cyan) !important;
+    border-bottom: 2px solid var(--cyan) !important;
+  }
+}

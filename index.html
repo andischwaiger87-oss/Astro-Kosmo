@@ -711,8 +711,7 @@
     <div class="copyright">© 2026 ANALYTISCHE PLATTFORM.</div>
   </footer>
 
-  <script>
-    // MASSIV ERWEITERTE GEONAMES-DATENBANK MIT DEUTSCHLAND- UND ÖSTERREICH-FOKUS
+<script>
     const geonamesCities = [
         { name: "St. Johann in Tirol, Österreich", lat: 47.5222, lon: 12.4278 },
         { name: "Salzburg, Österreich", lat: 47.8095, lon: 13.0550 },
@@ -795,6 +794,17 @@
         if(e.target !== placeInput) dropdown.style.display = 'none';
     });
 
+    const chartTarget = document.getElementById('canvasChartTarget');
+    chartTarget.addEventListener('mousemove', function(e) {
+        const nodeElement = e.target.closest('[data-tooltip]');
+        if (nodeElement) {
+            showTooltip(e, nodeElement.getAttribute('data-tooltip'));
+        } else {
+            hideTooltip();
+        }
+    });
+    chartTarget.addEventListener('mouseleave', hideTooltip);
+
     function toggleModal(id) {
         const modal = document.getElementById(id);
         modal.style.display = (modal.style.display === 'flex') ? 'none' : 'flex';
@@ -845,7 +855,6 @@
             lon: activeCoords.lon
         };
 
-        // MATHEMATISCHE ENGINE-KOPPLUNG: Berechnet die planetaren Daten lokal synchron im voraus
         const calculatedData = generateDeterministicAstroData(payload);
         renderAstroDataAndChart(calculatedData);
 
@@ -863,8 +872,8 @@
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
                 let done = false;
+                let remainderBuffer = ""; // Stream-Buffer zur Vermeidung von Wort-Verstümmelungen
 
-                // Verifikations-Layout sofort aktivieren, um Tabs beim API-Streaming direkt freizugeben
                 pdfActionWrapper.style.display = 'block';
                 tabWrapper.style.display = 'flex';
                 dynamicTitle.style.display = 'none';
@@ -872,11 +881,20 @@
                 while (!done) {
                     const { value, done: readerDone } = await reader.read();
                     done = readerDone;
-                    const chunk = decoder.decode(value);
-                    const lines = chunk.split('\n').filter(l => l.startsWith('data: '));
+                    
+                    const chunk = decoder.decode(value, { stream: !done });
+                    const completeText = remainderBuffer + chunk;
+                    const lines = completeText.split('\n');
+                    
+                    remainderBuffer = lines.pop(); // Unvollständiges JSON-Fragment für das nächste Paket sichern
+                    
                     for(const line of lines) {
+                        const trimmedLine = line.trim();
+                        if (!trimmedLine || !trimmedLine.startsWith('data: ')) continue;
+                        if (trimmedLine === 'data: [DONE]') continue;
+                        
                         try {
-                            const parsed = JSON.parse(line.replace('data: ', ''));
+                            const parsed = JSON.parse(trimmedLine.replace('data: ', ''));
                             const token = parsed.choices[0].delta.content;
                             if(token) {
                                 rawText += token;
@@ -910,43 +928,41 @@
         }
     });
 
+    // Ausfallsichere, strukturierte Regex-Deutung ohne Titel-Duplikationen
     function parseMarkdownToHTML(text) {
         let cleanText = text.trim();
-        let sections = [];
         
-        const h1Start = cleanText.indexOf('### 1.');
-        const h2Start = cleanText.indexOf('### 2.');
-        const h3Start = cleanText.indexOf('### 3.');
-
-        if (h1Start !== -1) {
-            let body1 = (h2Start !== -1) ? cleanText.substring(h1Start + 6, h2Start) : cleanText.substring(h1Start + 6);
-            sections.push({ title: "1. Energetische Matrix & Grundstruktur", body: body1 });
-        }
-        if (h2Start !== -1) {
-            let body2 = (h3Start !== -1) ? cleanText.substring(h2Start + 6, h3Start) : cleanText.substring(h2Start + 6);
-            sections.push({ title: "2. Psychologische Sollbruchstellen & Schattendynamik", body: body2 });
-        }
-        if (h3Start !== -1) {
-            let body3 = cleanText.substring(h3Start + 6);
-            sections.push({ title: "3. Integrationspfad & Individuation", body: body3 });
-        }
-
-        if (sections.length === 0) {
+        let sections = [
+            { title: "1. Energetische Matrix & Grundstruktur", regex: /(?:### 1\.[^\n]*\n?)([\s\S]*?)(?=### 2\.|$)/ },
+            { title: "2. Psychologische Sollbruchstellen & Schattendynamik", regex: /(?:### 2\.[^\n]*\n?)([\s\S]*?)(?=### 3\.|$)/ },
+            { title: "3. Integrationspfad & Individuation", regex: /(?:### 3\.[^\n]*\n?)([\s\S]*?|$)/ }
+        ];
+        
+        let htmlOutput = "<div class='analysis-text-wrapper'>";
+        let totalMatches = 0;
+        
+        sections.forEach(s => {
+            let match = cleanText.match(s.regex);
+            if (match && match[1]) {
+                totalMatches++;
+                let body = match[1].trim().replace(/---/g, '');
+                if (body.includes('**')) {
+                    const parts = body.split('**');
+                    body = parts.map((p, i) => i % 2 === 1 ? "<strong style='color:white; font-weight:600;'>" + p + "</strong>" : p).join('');
+                }
+                body = body.replace(/\n/g, '<br>');
+                htmlOutput += "<div class='analysis-card'><h4>" + s.title + "</h4><p>" + body + "</p></div>";
+            }
+        });
+        
+        if (totalMatches === 0) {
             return "<div class='analysis-text-wrapper'><div class='analysis-card'><p>" + text.replace(/\n/g, '<br>') + "</p></div></div>";
         }
-
-        return "<div class='analysis-text-wrapper'>" + sections.map(s => {
-            let bodyHtml = s.body.replace(/---/g, '').trim();
-            if (bodyHtml.includes('**')) {
-                const parts = bodyHtml.split('**');
-                bodyHtml = parts.map((p, i) => i % 2 === 1 ? "<strong style='color:white; font-weight:600;'>" + p + "</strong>" : p).join('');
-            }
-            bodyHtml = bodyHtml.replace(/\n/g, '<br>');
-            return "<div class='analysis-card'><h4>" + s.title + "</h4><p>" + bodyHtml + "</p></div>";
-        }).join('') + "</div>";
+        
+        htmlOutput += "</div>";
+        return htmlOutput;
     }
 
-    // Exakter astronomischer Datenabgleich zur Verifikation (100% Parität laut mm.jpg & hh.jpg)
     function generateDeterministicAstroData(payload) {
         return {
             planets: {
@@ -997,18 +1013,6 @@
 
     function hideTooltip() { document.getElementById("astroTooltip").style.opacity = "0"; }
 
-    // AUSFALLSICHERE DELEGIERTE STRUKTUR-STEUERUNG FÜR ABSTURZFREIE VECTOR-TOOLTIPS
-    const chartTarget = document.getElementById('canvasChartTarget');
-    chartTarget.addEventListener('mousemove', function(e) {
-        const nodeElement = e.target.closest('[data-tooltip]');
-        if (nodeElement) {
-            showTooltip(e, nodeElement.getAttribute('data-tooltip'));
-        } else {
-            hideTooltip();
-        }
-    });
-    chartTarget.addEventListener('mouseleave', hideTooltip);
-
     function renderAstroDataAndChart(data) {
         document.getElementById('planetGridTarget').innerHTML = Object.entries(data.planets).map(([name, p]) => 
             "<div class='astro-data-card'><span style='color:var(--muted)'>" + name + "</span><span style='color:var(--gold-soft)'>" + p.deg.toFixed(2) + "° " + p.sign.substring(0,3) + "</span></div>"
@@ -1047,7 +1051,7 @@
             return '<g class="animate-celestial-body" style="animation-delay: ' + (index * 45) + 'ms; transform-origin: ' + x + 'px ' + y + 'px;" data-tooltip="' + markerTooltip + '"><circle cx="' + x + '" cy="' + y + '" r="4" fill="#020714" stroke="var(--gold)" stroke-width="1.5" /><text x="' + textX + '" y="' + textY + '" fill="#ffffff" font-size="16" text-anchor="middle" dominant-baseline="central" filter="drop-shadow(0px 0px 4px rgba(0,229,255,0.5))">' + (glyphs[name] || '•') + '</text></g>';
         }).join('');
 
-        chartTarget.innerHTML = 
+        document.getElementById('canvasChartTarget').innerHTML = 
             '<svg viewBox="0 0 380 380" style="width:100%; height:100%; overflow:visible;">' +
                 '<circle cx="' + center + '" cy="' + center + '" r="165" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1" />' +
                 '<circle cx="' + center + '" cy="' + center + '" r="135" fill="none" stroke="var(--gold)" stroke-width="1" opacity="0.2" />' +
@@ -1058,7 +1062,6 @@
             '</svg>';
     }
 
-    // VOLLSTÄNDIGER DYNAMISCHER MULTI-PAGE PDF-EXPORT (Konvertiert und überträgt das erzeugte Profil fehlerfrei)
     document.getElementById('downloadPdfBtn').addEventListener('click', function() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
@@ -1066,10 +1069,8 @@
         const pageHeight = doc.internal.pageSize.height;
         const name = document.getElementById('userName').value || 'Anonym';
         
-        // Liest den generierten psychologischen Text dynamisch aus dem Container
         const textContent = document.getElementById('textOutput').innerText;
 
-        // Header-Hintergrundband (Deep-Navy / Goldline)
         doc.setFillColor(7, 16, 31); doc.rect(0, 0, pageWidth, 55, 'F');
         doc.setFillColor(217, 177, 74); doc.rect(0, 55, doc.internal.pageSize.width, 1, 'F');
         
@@ -1079,24 +1080,20 @@
         doc.text("TIEFENPSYCHOLOGISCHE CHARAKTER-SYNTHESE (C.G. JUNG MODELL)", 20, 36);
         doc.text("ANALYSESITZUNG FÜR KLIENT/IN: " + name.toUpperCase(), 20, 44);
 
-        // Textformatierung & Automatischer Zeilenumbruch (Multi-Page Logik)
         doc.setTextColor(40, 40, 40); doc.setFont("Helvetica", "normal"); doc.setFontSize(11);
-        
-        // Umbruchbreite definieren (A4 Breite abzüglich 20mm Rand links und rechts)
         const splitLines = doc.splitTextToSize(textContent, pageWidth - 40);
+        
         let y = 70;
         const lineHeight = 6.8;
 
         for (let i = 0; i < splitLines.length; i++) {
-            // Seitenumbruch-Schwelle überwachen (20mm Sicherheitsabstand zum unteren Rand)
             if (y > pageHeight - 20) { 
                 doc.addPage(); 
-                y = 25; // Reset der vertikalen Position auf Folgeseiten
+                y = 25; 
             }
             doc.text(splitLines[i], 20, y); 
             y += lineHeight;
         }
-        
         doc.save("Astro_Kosmo_Sitzungsanalyse_" + name + ".pdf");
     });
 
