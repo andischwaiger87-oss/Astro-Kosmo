@@ -1023,11 +1023,19 @@
         const localSiderealTime = (GMST + (decimalHours * 3600) + (lon * 240)) % 86400;
         const ramc = (localSiderealTime / 240.0) % 360;
 
+        // NEU: Placidus-Simulation durch sinusbasierte Raum-Verzerrung
         const housePositions = {};
         for (let h = 1; h <= 12; h++) {
-          const houseDeg = normalizeDeg(ramc + (h - 1) * 30 + (lat * 0.15));
+          // Erzeugt eine harmonische, vom Breitengrad abhängige Streckung/Stauchung der Häuser
+          const distortion = (lat * 0.14) * Math.sin(((ramc + (h - 1) * 30) * Math.PI) / 180);
+          const houseDeg = normalizeDeg(ramc + (h - 1) * 30 + distortion);
+          
           const hSignIndex = Math.floor(houseDeg / 30) % 12;
-          housePositions[`Haus ${h}`] = { display: `${Math.floor(houseDeg % 30)}° ${signs[hSignIndex].substring(0,3)}`, sign: signs[hSignIndex], totalDeg: houseDeg };
+          housePositions[`Haus ${h}`] = { 
+            display: `${Math.floor(houseDeg % 30)}° ${signs[hSignIndex].substring(0,3)}`, 
+            sign: signs[hSignIndex], 
+            totalDeg: houseDeg 
+          };
         }
 
         const calculatedAspects = [];
