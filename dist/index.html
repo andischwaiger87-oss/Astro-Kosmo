@@ -1219,6 +1219,9 @@ window.AstroEngine = { computeChart, fmtDMS, signOf, norm360, zoneFromPlace };
     ];
 
     let activeCoords = { lat: 47.80, lon: 13.04 }; 
+    let lastChartData = null;
+    let lastAnalysisText = "";
+    let lastPayload = null;
     let selectedGender = 'weiblich';
     
     const tiles = document.querySelectorAll('.toggle');
@@ -1322,6 +1325,8 @@ window.AstroEngine = { computeChart, fmtDMS, signOf, norm360, zoneFromPlace };
         // FEAT: Vollkommen dynamische mathematische Ephemeriden-Engine (Lokal gekoppelt)
         const calculatedData = generateDynamicAstroData(payload);
         renderAstroDataAndChart(calculatedData);
+        lastChartData = calculatedData;
+        lastPayload = payload;
 
         try {
             const response = await fetch('/api/generate', {
@@ -1369,12 +1374,9 @@ window.AstroEngine = { computeChart, fmtDMS, signOf, norm360, zoneFromPlace };
                     }
                 }
             } else {
-                simulateAstroStream(payload, (chunk) => {
-                    rawText += chunk;
-                    textOutput.innerHTML = parseMarkdownToHTML(rawText);
-                }, () => {
-                    finalizeOutput();
-                });
+                textOutput.innerHTML = `<div style='padding:30px 0;color:var(--muted);text-align:center;line-height:1.7;'>Die textliche Server-Analyse ist derzeit nicht erreichbar.<br>Die berechneten Radix-Daten stehen in den Reitern „Radix-Rad“ und „Rohdaten“ sowie im PDF-Export bereit.</div>`;
+                rawText = "";
+                finalizeOutput();
                 return;
             }
             finalizeOutput();
@@ -1386,12 +1388,179 @@ window.AstroEngine = { computeChart, fmtDMS, signOf, norm360, zoneFromPlace };
         }
 
         function finalizeOutput() {
+            lastAnalysisText = rawText;
             pdfActionWrapper.style.display = 'block';
             tabWrapper.style.display = 'flex';
             dynamicTitle.style.display = 'none'; 
             switchTab('textTab');
         }
     });
+
+
+    // ===== ROBUSTER PDF-EXPORT (jsPDF, mehrseitig, mit Stammdaten/Analyse/Rohdaten) =====
+    function cleanMd(s){
+        return String(s).replace(/\*\*/g,'').replace(/^---+$/gm,'').replace(/`/g,'').replace(/\n{3,}/g,'\n\n').trim();
+    }
+    function extractAnalysisSections(text){
+        const defs = [
+            { title:'1. Energetische Matrix & Grundstruktur', re:/###\s*1\.[^\n]*\n?([\s\S]*?)(?=###\s*2\.|$)/ },
+            { title:'2. Psychologische Sollbruchstellen & Schattendynamik', re:/###\s*2\.[^\n]*\n?([\s\S]*?)(?=###\s*3\.|$)/ },
+            { title:'3. Integrationspfad & Individuation', re:/###\s*3\.[^\n]*\n?([\s\S]*?)$/ }
+        ];
+        const out=[]; let any=false;
+        for(const d of defs){ const m=text.match(d.re); if(m && m[1] && m[1].trim()){ any=true; out.push({ title:d.title, body:cleanMd(m[1]) }); } }
+        if(!any && text.trim()) out.push({ title:'Analyse', body:cleanMd(text) });
+        return out;
+    }
+
+    function buildAnalysisPDF(){
+        const JS = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : null;
+        if(!JS){ alert('PDF-Bibliothek konnte nicht geladen werden. Bitte die Seite neu laden und erneut versuchen.'); return; }
+        if(!lastChartData || !lastChartData.planets){ alert('Bitte zuerst eine Analyse berechnen.'); return; }
+
+        const btn = document.getElementById('downloadPdfBtn');
+        const originalLabel = btn ? btn.innerText : '';
+        if(btn){ btn.disabled = true; btn.innerText = 'PDF wird erstellt …'; }
+
+        try {
+            const doc = new JS({ orientation:'p', unit:'mm', format:'a4' });
+            const W = doc.internal.pageSize.getWidth();
+            const H = doc.internal.pageSize.getHeight();
+            const M = 18, CW = W - M*2;
+            const GOLD=[201,157,45], CYAN=[0,150,170], DARK=[18,22,30];
+            let y = M;
+
+            function footer(){
+                const pg = doc.internal.getNumberOfPages();
+                doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(150);
+                doc.text('ASTRO · KOSMO — Kosmische Synthese', M, H-10);
+                doc.text('Seite ' + pg, W - M, H-10, { align:'right' });
+            }
+            function ensure(space){ if(y + space > H - 16){ footer(); doc.addPage(); y = M; } }
+            function heading(txt, color){
+                color = color || GOLD;
+                ensure(14);
+                doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(color[0],color[1],color[2]);
+                doc.text(txt, M, y); y += 5.5;
+                doc.setDrawColor(color[0],color[1],color[2]); doc.setLineWidth(0.3); doc.line(M, y, M+CW, y); y += 6;
+            }
+            function para(txt){
+                doc.setFont('helvetica','normal'); doc.setFontSize(10.5); doc.setTextColor(40,40,40);
+                const lines = doc.splitTextToSize(txt, CW);
+                for(const ln of lines){ ensure(5.6); doc.text(ln, M, y); y += 5.2; }
+                y += 2.5;
+            }
+            function table(rows, widths){
+                const colW = widths.map(w => w*CW);
+                const rowH = 6.6;
+                rows.forEach((row, ri) => {
+                    ensure(rowH);
+                    if(ri === 0){ doc.setFillColor(236,233,223); doc.rect(M, y-4.7, CW, rowH, 'F'); doc.setFont('helvetica','bold'); doc.setTextColor(60,60,60); }
+                    else { doc.setFont('helvetica','normal'); doc.setTextColor(45,45,45); if(ri % 2 === 0){ doc.setFillColor(247,246,242); doc.rect(M, y-4.7, CW, rowH, 'F'); } }
+                    doc.setFontSize(9.5);
+                    let x = M;
+                    row.forEach((cell, ci) => {
+                        const t = doc.splitTextToSize(String(cell), colW[ci]-3)[0] || '';
+                        doc.text(t, x + 1.6, y); x += colW[ci];
+                    });
+                    y += rowH;
+                });
+                y += 3.5;
+            }
+
+            // Titelband
+            doc.setFillColor(DARK[0],DARK[1],DARK[2]); doc.rect(0,0,W,34,'F');
+            doc.setFont('helvetica','bold'); doc.setFontSize(20); doc.setTextColor(GOLD[0],GOLD[1],GOLD[2]);
+            doc.text('ASTRO · KOSMO', M, 15);
+            doc.setFont('helvetica','normal'); doc.setFontSize(11); doc.setTextColor(228,228,228);
+            doc.text('Kosmische Synthese — Radix-Analyse', M, 24);
+            y = 44;
+
+            // Stammdaten
+            const p = lastPayload || {};
+            const meta = lastChartData.meta || {};
+            heading('Geburtsdaten', CYAN);
+            const dParts = (p.date || '').split('-');
+            const dateStr = dParts.length === 3 ? (dParts[2] + '.' + dParts[1] + '.' + dParts[0]) : (p.date || '—');
+            let utStr = '';
+            if(meta.utc){ utStr = meta.utc.replace('T',' ').replace(/\.000Z$/,' UTC'); }
+            para(
+                (p.name ? 'Name / Alias: ' + p.name + '\n' : '') +
+                'Geburtsdatum: ' + dateStr + '     Uhrzeit: ' + (p.time || '—') + '\n' +
+                'Geburtsort: ' + (p.place || '—') + '\n' +
+                'Koordinaten: ' + (meta.lat != null ? meta.lat.toFixed(4) : '?') + '° / ' + (meta.lon != null ? meta.lon.toFixed(4) : '?') + '°' +
+                (meta.zone ? '     Zeitzone: ' + meta.zone : '') +
+                (utStr ? '\nWeltzeit (UT): ' + utStr : '')
+            );
+
+            // Analyse-Text
+            const secs = extractAnalysisSections(lastAnalysisText || '');
+            if(secs.length){
+                heading('Psychologische Analyse', GOLD);
+                for(const s of secs){
+                    ensure(10);
+                    doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(CYAN[0],CYAN[1],CYAN[2]);
+                    const tl = doc.splitTextToSize(s.title, CW);
+                    for(const ln of tl){ ensure(6); doc.text(ln, M, y); y += 5.4; }
+                    y += 1.5;
+                    para(s.body);
+                }
+            }
+
+            // Planetenpositionen
+            heading('Planetenpositionen (geozentrisch, tropisch)', GOLD);
+            table(
+                [['Körper','Position','Haus']].concat(
+                    Object.entries(lastChartData.planets).map(([n, pl]) => {
+                        const house = pl.house || getHouseForPlanet(pl.totalDeg, lastChartData.houses);
+                        return [n, pl.deg.toFixed(2) + '° ' + pl.sign, 'Haus ' + house];
+                    })
+                ),
+                [0.42, 0.40, 0.18]
+            );
+
+            // Häuserspitzen
+            heading('Häuserspitzen (Placidus)', CYAN);
+            table(
+                [['Haus','Position']].concat(
+                    Object.entries(lastChartData.houses).map(([n, h]) => [n, h.display])
+                ),
+                [0.5, 0.5]
+            );
+
+            // Aspekte
+            heading('Aspekt-Matrix', GOLD);
+            if(lastChartData.aspects && lastChartData.aspects.length){
+                table(
+                    [['Körper 1','Aspekt','Körper 2','Orbis']].concat(
+                        lastChartData.aspects.map(a => [a.p1, a.asp, a.p2, a.orb])
+                    ),
+                    [0.30, 0.27, 0.27, 0.16]
+                );
+            } else {
+                para('Keine Aspekte innerhalb der definierten Orben.');
+            }
+
+            ensure(14);
+            doc.setFont('helvetica','italic'); doc.setFontSize(8); doc.setTextColor(130,130,130);
+            doc.text(doc.splitTextToSize('Berechnung: validierte Ephemeride (astronomy-engine, JPL-getestet), Häusersystem Placidus, tropischer Tierkreis. Astrologische Analyse dient der Selbstreflexion und ersetzt keine medizinische oder psychotherapeutische Beratung.', CW), M, y);
+
+            footer();
+            const safe = (p.name || 'Radix').replace(/[^a-zA-Z0-9äöüÄÖÜß _-]/g,'').trim().replace(/\s+/g,'_') || 'Radix';
+            doc.save('Astro-Kosmo_' + safe + '.pdf');
+        } catch(err){
+            console.error('PDF-Export fehlgeschlagen:', err);
+            alert('Beim Erstellen des PDFs ist ein Fehler aufgetreten. Details in der Konsole.');
+        } finally {
+            if(btn){ btn.disabled = false; btn.innerText = originalLabel || 'Analyse PDF exportieren'; }
+        }
+    }
+
+    (function(){
+        const pdfBtn = document.getElementById('downloadPdfBtn');
+        if(pdfBtn) pdfBtn.addEventListener('click', buildAnalysisPDF);
+    })();
+
 
     function parseMarkdownToHTML(text) {
         let cleanText = text.trim();
