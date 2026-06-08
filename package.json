@@ -10,6 +10,7 @@
     "pages:dev": "wrangler pages dev ./dist"
   },
   "dependencies": {
+    "astronomy-engine": "^2.1.19",
     "jspdf": "^2.5.1",
     "lucide-react": "^0.300.0",
     "react": "^18.2.0",

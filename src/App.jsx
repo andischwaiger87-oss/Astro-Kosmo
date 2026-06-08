@@ -1,6 +1,31 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { jsPDF } from 'jspdf';
 import { Sparkles, FileText, Moon, HelpCircle, Compass, User, MapPin, Calendar, Clock } from 'lucide-react';
+import { computeChart } from './astroEngine.js';
+
+// Geokoordinaten (AT/DE) — identisch zur Standalone-App, für korrekte Häuser/Aszendent.
+const GEONAMES = [
+  { name: "St. Johann in Tirol, Österreich", lat: 47.5222, lon: 12.4278 },
+  { name: "Salzburg, Österreich", lat: 47.8095, lon: 13.0550 },
+  { name: "Wien, Österreich", lat: 48.2082, lon: 16.3738 },
+  { name: "Graz, Österreich", lat: 47.0707, lon: 15.4395 },
+  { name: "Linz, Österreich", lat: 48.3064, lon: 14.2858 },
+  { name: "Innsbruck, Österreich", lat: 47.2692, lon: 11.4041 },
+  { name: "Klagenfurt am Wörthersee, Österreich", lat: 46.6365, lon: 14.3122 },
+  { name: "Villach, Österreich", lat: 46.6103, lon: 13.8558 },
+  { name: "Bregenz, Österreich", lat: 47.5031, lon: 9.7471 },
+  { name: "Berlin, Deutschland", lat: 52.5200, lon: 13.4050 },
+  { name: "München, Deutschland", lat: 48.1351, lon: 11.5820 },
+  { name: "Hamburg, Deutschland", lat: 53.5511, lon: 9.9937 },
+  { name: "Köln, Deutschland", lat: 50.9375, lon: 6.9603 },
+  { name: "Frankfurt am Main, Deutschland", lat: 50.1109, lon: 8.6821 }
+];
+function resolveCoords(place) {
+  const p = (place || '').trim().toLowerCase();
+  if (!p) return { lat: 47.8095, lon: 13.0550, place: 'Salzburg, Österreich' };
+  const hit = GEONAMES.find(c => c.name.toLowerCase().includes(p) || p.includes(c.name.split(',')[0].toLowerCase()));
+  return hit ? { lat: hit.lat, lon: hit.lon, place: hit.name } : { lat: 47.8095, lon: 13.0550, place };
+}
 
 export default function App() {
   const [formData, setFormData] = useState({ date: '', time: '', place: '', gender: 'weiblich', name: '' });
@@ -9,7 +34,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('textTab');
   const [activeModal, setActiveModal] = useState(null);
   const [legalType, setLegalType] = useState('');
-  
+
   const [astroData, setAstroData] = useState({ planets: null, houses: null, aspects: null, elements: null });
   const outputEndRef = useRef(null);
 
@@ -30,11 +55,26 @@ export default function App() {
     console.time("⏱️ Gesamtlaufzeit Berechnung");
     console.log("📥 Absende-Payload:", formData);
 
+    // Radix client-seitig mit der validierten Engine berechnen (geozentrisch, tropisch,
+    // echtes Placidus, korrekte Zeitzone). Identische Logik wie Server & Standalone-App.
+    const coords = resolveCoords(formData.place);
+    let chartPayload = formData;
+    try {
+      const chart = computeChart({ ...formData, lat: coords.lat, lon: coords.lon, place: coords.place });
+      chartPayload = { ...formData, ...coords };
+      setAstroData({ planets: chart.planets, houses: chart.houses, aspects: chart.aspects, elements: chart.elements });
+      console.log("🪐 Planetenpositionen:", chart.planets);
+      console.log("🏠 Häuserspitzen (Placidus):", chart.houses);
+      console.log("📐 Aspekt-Matrix:", chart.aspects);
+    } catch (err) {
+      console.error("❌ Engine-Fehler:", err);
+    }
+
     try {
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(chartPayload)
       });
 
       const reader = response.body.getReader();
@@ -46,24 +86,13 @@ export default function App() {
         done = readerDone;
         const chunk = decoder.decode(value);
         const lines = chunk.split('\n').filter(line => line.trim() !== '');
-        
+
         for (const line of lines) {
           if (line.startsWith('data: ') && line !== 'data: [DONE]') {
             try {
               const parsed = JSON.parse(line.replace('data: ', ''));
               const token = parsed.choices[0].delta.content;
               if (token) setTextOutput((prev) => prev + token);
-              
-              if (parsed.planets && !astroData.planets) {
-                setAstroData({
-                  planets: parsed.planets,
-                  houses: parsed.houses,
-                  aspects: parsed.aspects,
-                  elements: parsed.elements
-                });
-                console.log("🪐 Planetenpositionen empfangen:", parsed.planets);
-                console.log("📐 Berechnete Aspekt-Matrix:", parsed.aspects);
-              }
             } catch (e) {}
           }
         }
@@ -80,17 +109,17 @@ export default function App() {
   const exportToPDF = () => {
     const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
     const pageWidth = doc.internal.pageSize.width;
-    
-    doc.setFillColor(17, 20, 23); 
+
+    doc.setFillColor(17, 20, 23);
     doc.rect(0, 0, pageWidth, 55, 'F');
     doc.setFillColor(212, 175, 55);
     doc.rect(0, 55, pageWidth, 1, 'F');
-    
-    doc.setTextColor(212, 175, 55); 
+
+    doc.setTextColor(212, 175, 55);
     doc.setFont("Helvetica", "bold");
     doc.setFontSize(24);
     doc.text("ASTRO-KOSMO STUDIO", 20, 26);
-    
+
     doc.save(`Astro_Analyse_${formData.name || 'Studio'}.pdf`);
   };
 
@@ -135,10 +164,10 @@ export default function App() {
     });
   };
 
-  // Dynamischer SOTA SVG-Katalysator (Zeichnet das Radix basierend auf echten Winkeln)
+  // Dynamischer SVG-Katalysator (Zeichnet das Radix basierend auf den echten Längen)
   const drawSvgRadix = () => {
     if (!astroData.planets) return null;
-    
+
     const center = 190;
     const aspectLines = astroData.aspects.map((a, i) => {
       const p1Data = astroData.planets[a.p1];
@@ -156,7 +185,7 @@ export default function App() {
       const rad = (p.totalDeg * Math.PI) / 180;
       const x = center + 135 * Math.cos(rad);
       const y = center + 135 * Math.sin(rad);
-      const glyphs = { Sonne: '☉', Mond: '☽', Merkur: '☿', Venus: '♀', Mars: '♂', Jupiter: '♃', Saturn: '♄' };
+      const glyphs = { Sonne: '☉', Mond: '☽', Merkur: '☿', Venus: '♀', Mars: '♂', Jupiter: '♃', Saturn: '♄', Uranus: '♅', Neptun: '♆', Pluto: '♇', Mondknoten: '☊' };
       return (
         <g key={name}>
           <circle cx={x} cy={y} r="4" fill="#05070a" stroke="#d4af37" strokeWidth="1" />
@@ -212,7 +241,7 @@ export default function App() {
               <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5"><MapPin size={12} className="inline mr-1"/> Geburtsort</label>
               <input type="text" required placeholder="Stadt eingeben..." className="input-dark w-full rounded-md px-4 py-3 text-white" value={formData.place} onChange={e => setFormData({...formData, place: e.target.value})} />
             </div>
-            
+
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Identifikations-Rhythmus</label>
               <div className="grid grid-cols-3 gap-3">
@@ -270,10 +299,20 @@ export default function App() {
                   {Object.entries(astroData.planets).map(([name, p]) => (
                     <div key={name} className="p-2.5 bg-white/[0.02] border border-white/5 rounded-md flex justify-between">
                       <span className="font-semibold text-slate-200">{name}</span>
-                      <span className="text-[#d4af37]">{p.deg.toFixed(2)}° {p.sign}</span>
+                      <span className="text-[#d4af37]">{p.deg.toFixed(2)}° {p.sign} (H{p.house})</span>
                     </div>
                   ))}
                 </div>
+                {astroData.houses && (
+                  <div className="grid grid-cols-2 gap-2">
+                    {Object.entries(astroData.houses).map(([num, h]) => (
+                      <div key={num} className="p-2.5 bg-white/[0.02] border border-white/5 rounded-md flex justify-between">
+                        <span className="font-semibold text-slate-200">{num}</span>
+                        <span className="text-[#00f2ff]">{h.display}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -288,7 +327,7 @@ export default function App() {
 
       {/* FOOTER DIALOG INTERACTION */}
       <footer className="w-full py-4 border-t border-white/5 bg-[#0c0e12] flex items-center justify-between px-16 mt-auto hidden md:flex text-xs font-light text-slate-500">
-        <div class="font-serif-title font-bold text-[#d4af37] tracking-widest text-sm">ASTRO-KOSMO</div>
+        <div className="font-serif-title font-bold text-[#d4af37] tracking-widest text-sm">ASTRO-KOSMO</div>
         <div className="flex gap-6 uppercase tracking-wider font-semibold">
             <button onClick={() => { setActiveModal('legal'); setLegalType('datenschutz'); }} className="hover:text-[#d4af37]">Datenschutz</button>
             <button onClick={() => { setActiveModal('legal'); setLegalType('impressum'); }} className="hover:text-[#d4af37]">Impressum</button>
